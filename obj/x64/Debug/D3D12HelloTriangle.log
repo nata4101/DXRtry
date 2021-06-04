@@ -1,26 +1,16 @@
-﻿  Performing Custom Build Tools
-  stdafx.cpp
-  BottomLevelASGenerator.cpp
-  RaytracingPipelineGenerator.cpp
-  RootSignatureGenerator.cpp
-  ShaderBindingTableGenerator.cpp
-  TopLevelASGenerator.cpp
-  コードを生成中...
-  Win32Application.cpp
+﻿  Manager.cpp
   D3D12HelloTriangle.cpp
-  DXSample.cpp
-  Main.cpp
   コードを生成中...
-  D3D12HelloTriangle.vcxproj -> D:\User\ダウンロード\dxr_tutorial\bin\x64\Debug\D3D12HelloTriangle.exe
+  D3D12HelloTriangle.vcxproj -> C:\Users\riki1\source\repos\DXRtry\bin\x64\Debug\D3D12HelloTriangle.exe
   Copy dxcompiler.dll and dxil.dll to target folder
   
   -------------------------------------------------------------------------------
      ROBOCOPY     ::     Windows の堅牢性の高いファイル コピー                              
   -------------------------------------------------------------------------------
   
-    開始: 2021年6月2日 17:41:13
+    開始: 2021年6月3日 13:56:18
      コピー元 : C:\Program Files (x86)\Windows Kits\10\bin\10.0.18362.0\x64\
-       コピー先 : D:\User\ダウンロード\dxr_tutorial\bin\x64\Debug\
+       コピー先 : C:\Users\riki1\source\repos\DXRtry\bin\x64\Debug\
   
       ファイル: dxcompiler.dll
   	    dxil.dll
@@ -30,36 +20,13 @@
   ------------------------------------------------------------------------------
   
   	                   2	C:\Program Files (x86)\Windows Kits\10\bin\10.0.18362.0\x64\
-  	  新しいファイル		  11.9 m	dxcompiler.dll
-    8.3%
-   16.7%
-   25.1%
-   33.5%
-   41.9%
-   50.3%
-   58.7%
-   67.1%
-   75.5%
-   83.9%
-   92.3%
-  100%  
-  	  新しいファイル		   1.0 m	dxil.dll
-   23%  
-   46%  
-   70%  
-   93%  
-  100%  
   
   ------------------------------------------------------------------------------
   
                     合計     コピー済み      スキップ       不一致        失敗    Extras
      ディレクトリ:         1         0         1         0         0         0
-       ファイル:         2         2         0         0         0         0
-        バイト:   12.98 m   12.98 m         0         0         0         0
+       ファイル:         2         0         2         0         0         0
+        バイト:   12.98 m         0   12.98 m         0         0         0
          時刻:   0:00:00   0:00:00                       0:00:00   0:00:00
-  
-  
-         速度:           400320470 バイト/秒
-         速度:           22906.521 MB/分
-     終了: 2021年6月2日 17:41:13
+     終了: 2021年6月3日 13:56:18
   

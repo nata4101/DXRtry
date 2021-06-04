@@ -1,4 +1,4 @@
-//*********************************************************
+﻿//*********************************************************
 //
 // Copyright (c) Microsoft. All rights reserved.
 // This code is licensed under the MIT License (MIT).
@@ -32,37 +32,49 @@ void D3D12HelloTriangle::OnInit() {
   LoadAssets();
 
   // Check the raytracing capabilities of the device
+  //デバイスのレイトレーシング機能を確認する
   CheckRaytracingSupport();
 
   // Setup the acceleration structures (AS) for raytracing. When setting up
   // geometry, each bottom-level AS has its own transform matrix.
+  //レイトレーシング用の加速構造(AS) を設定します。セットアップ時
+  //ジオメトリでは、各最下位 AS に独自の変換行列があります
   CreateAccelerationStructures();
 
   // Command lists are created in the recording state, but there is
   // nothing to record yet. The main loop expects it to be closed, so
   // close it now.
+  //コマンドリストは記録状態で作成しますが、
+  //記録するものはまだありません。メイン ループはそれが閉じていることを想定しているため、
+  //今すぐ閉じてください。
   ThrowIfFailed(m_commandList->Close());
 
   // Create the raytracing pipeline, associating the shader code to symbol names
   // and to their root signatures, and defining the amount of memory carried by
   // rays (ray payload)
+  //シェーダー コードをシンボル名に関連付けて、レイ トレーシング パイプラインを作成する
+  //およびそれらのルート署名、および光線によって運ばれるメモリの量を定義する(光線ペイロード)
   CreateRaytracingPipeline(); // #DXR
 
   // Allocate the buffer storing the raytracing output, with the same dimensions
   // as the target image
+  //レイトレーシング出力を格納するバッファを、ターゲット画像と同じサイズで割り当てます
   CreateRaytracingOutputBuffer(); // #DXR
 
   // Create the buffer containing the raytracing result (always output in a
   // UAV), and create the heap referencing the resources used by the raytracing,
   // such as the acceleration structure
+  //レイトレーシングの結果 (常に UAV で出力) を含むバッファーを作成し、加速構造などのレイトレーシングで使用されるリソースを参照するヒープを作成します。
   CreateShaderResourceHeap(); // #DXR
 
   // Create the shader binding table and indicating which shaders
   // are invoked for each instance in the  AS
+  //シェーダー バインディング テーブルを作成し、AS の各インスタンスに対してどのシェーダーが呼び出されるかを示します。
   CreateShaderBindingTable();
 }
 
 // Load the rendering pipeline dependencies.
+// レンダリング パイプラインの依存関係を読み込みます。
 void D3D12HelloTriangle::LoadPipeline() {
   UINT dxgiFactoryFlags = 0;
 
@@ -70,6 +82,8 @@ void D3D12HelloTriangle::LoadPipeline() {
   // Enable the debug layer (requires the Graphics Tools "optional feature").
   // NOTE: Enabling the debug layer after device creation will invalidate the
   // active device.
+  //デバッグ レイヤーを有効にします (グラフィック ツールの「オプション機能」が必要です)。
+  //注: デバイスの作成後にデバッグ レイヤーを有効にすると、アクティブなデバイス。
   {
     ComPtr<ID3D12Debug> debugController;
     if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)))) {
@@ -99,7 +113,7 @@ void D3D12HelloTriangle::LoadPipeline() {
                                     IID_PPV_ARGS(&m_device)));
   }
 
-  // Describe and create the command queue.
+  // c
   D3D12_COMMAND_QUEUE_DESC queueDesc = {};
   queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
   queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
@@ -108,6 +122,7 @@ void D3D12HelloTriangle::LoadPipeline() {
       m_device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_commandQueue)));
 
   // Describe and create the swap chain.
+  // スワップ チェーンを記述して作成します。
   DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
   swapChainDesc.BufferCount = FrameCount;
   swapChainDesc.Width = m_width;
@@ -119,12 +134,13 @@ void D3D12HelloTriangle::LoadPipeline() {
 
   ComPtr<IDXGISwapChain1> swapChain;
   ThrowIfFailed(factory->CreateSwapChainForHwnd(
-      m_commandQueue.Get(), // Swap chain needs the queue so that it can force a
-                            // flush on it.
+      m_commandQueue.Get(), // Swap chain needs the queue so that it can force aflush on it.
+						    // スワップ チェーンには、強制的にフラッシュできるようにキューが必要です。
       Win32Application::GetHwnd(), &swapChainDesc, nullptr, nullptr,
       &swapChain));
 
   // This sample does not support fullscreen transitions.
+  // このサンプルは全画面遷移をサポートしていません。
   ThrowIfFailed(factory->MakeWindowAssociation(Win32Application::GetHwnd(),
                                                DXGI_MWA_NO_ALT_ENTER));
 
@@ -132,8 +148,10 @@ void D3D12HelloTriangle::LoadPipeline() {
   m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
 
   // Create descriptor heaps.
+  // 記述子ヒープを作成します。
   {
     // Describe and create a render target view (RTV) descriptor heap.
+	// レンダー ターゲット ビュー (RTV) 記述子ヒープを記述して作成します。
     D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
     rtvHeapDesc.NumDescriptors = FrameCount;
     rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
@@ -146,11 +164,13 @@ void D3D12HelloTriangle::LoadPipeline() {
   }
 
   // Create frame resources.
+  // フレーム リソースを作成します。
   {
     CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(
         m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
 
     // Create a RTV for each frame.
+	// 各フレームの RTV を作成します。
     for (UINT n = 0; n < FrameCount; n++) {
       ThrowIfFailed(
           m_swapChain->GetBuffer(n, IID_PPV_ARGS(&m_renderTargets[n])));
@@ -165,8 +185,10 @@ void D3D12HelloTriangle::LoadPipeline() {
 }
 
 // Load the sample assets.
+// サンプル アセットを読み込みます。
 void D3D12HelloTriangle::LoadAssets() {
   // Create an empty root signature.
+  // 空のルート署名を作成します。
   {
     CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
     rootSignatureDesc.Init(
@@ -183,12 +205,14 @@ void D3D12HelloTriangle::LoadAssets() {
   }
 
   // Create the pipeline state, which includes compiling and loading shaders.
+  // シェーダーのコンパイルと読み込みを含むパイプライン状態を作成します。
   {
     ComPtr<ID3DBlob> vertexShader;
     ComPtr<ID3DBlob> pixelShader;
 
 #if defined(_DEBUG)
     // Enable better shader debugging with the graphics debugging tools.
+    // グラフィック デバッグ ツールを使用して、より適切なシェーダー デバッグを有効にします。
     UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #else
     UINT compileFlags = 0;
@@ -202,6 +226,7 @@ void D3D12HelloTriangle::LoadAssets() {
                                      compileFlags, 0, &pixelShader, nullptr));
 
     // Define the vertex input layout.
+    // 頂点入力レイアウトを定義します。
     D3D12_INPUT_ELEMENT_DESC inputElementDescs[] = {
         {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
          D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
@@ -209,6 +234,7 @@ void D3D12HelloTriangle::LoadAssets() {
          D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}};
 
     // Describe and create the graphics pipeline state object (PSO).
+    // グラフィックス パイプライン状態オブジェクト (PSO) を記述して作成します。
     D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
     psoDesc.InputLayout = {inputElementDescs, _countof(inputElementDescs)};
     psoDesc.pRootSignature = m_rootSignature.Get();
@@ -228,13 +254,16 @@ void D3D12HelloTriangle::LoadAssets() {
   }
 
   // Create the command list.
+  // コマンドリストを作成します。
   ThrowIfFailed(m_device->CreateCommandList(
       0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(),
       m_pipelineState.Get(), IID_PPV_ARGS(&m_commandList)));
 
   // Create the vertex buffer.
+  // 頂点バッファを作成します。
   {
     // Define the geometry for a triangle.
+	// 三角形のジオメトリを定義します。
     Vertex triangleVertices[] = {
         {{0.0f, 0.25f * m_aspectRatio, 0.0f}, {1.0f, 1.0f, 0.0f, 1.0f}},
         {{0.25f, -0.25f * m_aspectRatio, 0.0f}, {0.0f, 1.0f, 1.0f, 1.0f}},
@@ -247,6 +276,9 @@ void D3D12HelloTriangle::LoadAssets() {
     // marshalled over. Please read up on Default Heap usage. An upload heap is
     // used here for code simplicity and because there are very few verts to
     // actually transfer.
+	// 注: アップロード ヒープを使用して、vert バッファーのような静的データを転送することはできません。
+	//推奨。 GPU が必要とするたびに、アップロード ヒープが整列化されます。デフォルトのヒープの使用法をよく読んでください。
+	//アップロード ヒープは、コードを簡素化するために、また実際に転送する頂点がほとんどないため、ここで使用されます。
     ThrowIfFailed(m_device->CreateCommittedResource(
         &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAG_NONE,
         &CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize),
@@ -254,53 +286,63 @@ void D3D12HelloTriangle::LoadAssets() {
         IID_PPV_ARGS(&m_vertexBuffer)));
 
     // Copy the triangle data to the vertex buffer.
+	// 三角形データを頂点バッファーにコピーします。
     UINT8 *pVertexDataBegin;
-    CD3DX12_RANGE readRange(
-        0, 0); // We do not intend to read from this resource on the CPU.
+    CD3DX12_RANGE readRange(0, 0); // We do not intend to read from this resource on the CPU.
+								   // CPU 上のこのリソースから読み取るつもりはありません。
     ThrowIfFailed(m_vertexBuffer->Map(
         0, &readRange, reinterpret_cast<void **>(&pVertexDataBegin)));
     memcpy(pVertexDataBegin, triangleVertices, sizeof(triangleVertices));
     m_vertexBuffer->Unmap(0, nullptr);
 
     // Initialize the vertex buffer view.
+	// 頂点バッファー ビューを初期化します。
     m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
     m_vertexBufferView.StrideInBytes = sizeof(Vertex);
     m_vertexBufferView.SizeInBytes = vertexBufferSize;
   }
 
-  // Create synchronization objects and wait until assets have been uploaded to
-  // the GPU.
+  // Create synchronization objects and wait until assets have been uploaded to the GPU.
+  // 同期オブジェクトを作成し、アセットが GPU にアップロードされるまで待ちます。
   {
     ThrowIfFailed(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE,
                                         IID_PPV_ARGS(&m_fence)));
     m_fenceValue = 1;
 
     // Create an event handle to use for frame synchronization.
+	// フレーム同期に使用するイベント ハンドルを作成します。
     m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
     if (m_fenceEvent == nullptr) {
       ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
     }
 
-    // Wait for the command list to execute; we are reusing the same command
-    // list in our main loop but for now, we just want to wait for setup to
-    // complete before continuing.
+    // Wait for the command list to execute; 
+	//we are reusing the same commandlist in our main loop but for now,
+	//we just want to wait for setup tocomplete before continuing.
+	// コマンド リストが実行されるのを待ちます。
+	//メインループで同じコマンドリストを再利用していますが、今はセットアップが完了するのを待ってから続行します。
     WaitForPreviousFrame();
   }
 }
 
 // Update frame-based values.
+// フレームベースの値を更新します。
 void D3D12HelloTriangle::OnUpdate() {}
 
 // Render the scene.
+// シーンをレンダリングします。
 void D3D12HelloTriangle::OnRender() {
   // Record all the commands we need to render the scene into the command list.
-  PopulateCommandList();
+  // シーンをレンダリングするために必要なすべてのコマンドをコマンド リストに記録します。
+	PopulateCommandList();
 
   // Execute the command list.
+  // コマンドリストを実行します。
   ID3D12CommandList *ppCommandLists[] = {m_commandList.Get()};
   m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
   // Present the frame.
+  // フレームを表示します。
   ThrowIfFailed(m_swapChain->Present(1, 0));
 
   WaitForPreviousFrame();
@@ -309,6 +351,7 @@ void D3D12HelloTriangle::OnRender() {
 void D3D12HelloTriangle::OnDestroy() {
   // Ensure that the GPU is no longer referencing resources that are about to be
   // cleaned up by the destructor.
+  // デストラクタによってクリーンアップされようとしているリソースを GPU が参照していないことを確認してください。
   WaitForPreviousFrame();
 
   CloseHandle(m_fenceEvent);
@@ -318,20 +361,26 @@ void D3D12HelloTriangle::PopulateCommandList() {
   // Command list allocators can only be reset when the associated
   // command lists have finished execution on the GPU; apps should use
   // fences to determine GPU execution progress.
+
+  //コマンドリストアロケータは、関連するコマンド リストが GPU での実行を終了した場合にのみリセットできます。
+  //アプリはフェンスを使用して GPU 実行の進行状況を判断する必要があります。
   ThrowIfFailed(m_commandAllocator->Reset());
 
-  // However, when ExecuteCommandList() is called on a particular command
-  // list, that command list can then be reset at any time and must be before
-  // re-recording.
+  // However, when ExecuteCommandList() is called on a particular commandlist, 
+  // that command list can then be reset at any time and must be before re-recording.
+  // ただし、特定のコマンドリストでExecuteCommandList()が呼び出された場合、
+  // そのコマンドリストはいつでもリセットでき、再記録する前に設定する必要があります。
   ThrowIfFailed(
       m_commandList->Reset(m_commandAllocator.Get(), m_pipelineState.Get()));
 
   // Set necessary state.
+  // 必要な状態を設定します。
   m_commandList->SetGraphicsRootSignature(m_rootSignature.Get());
   m_commandList->RSSetViewports(1, &m_viewport);
   m_commandList->RSSetScissorRects(1, &m_scissorRect);
 
   // Indicate that the back buffer will be used as a render target.
+  // バック バッファーがレンダー ターゲットとして使用されることを示します。
   m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
                                         m_renderTargets[m_frameIndex].Get(),
                                         D3D12_RESOURCE_STATE_PRESENT,
@@ -343,6 +392,7 @@ void D3D12HelloTriangle::PopulateCommandList() {
   m_commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
 
   // Record commands.
+  // コマンドを記録します。
   // #DXR
   if (m_raster) {
     const float clearColor[] = {0.0f, 0.2f, 0.4f, 1.0f};
@@ -352,8 +402,9 @@ void D3D12HelloTriangle::PopulateCommandList() {
     m_commandList->DrawInstanced(3, 1, 0, 0);
   } else {
     // #DXR
-    // Bind the descriptor heap giving access to the top-level acceleration
-    // structure, as well as the raytracing output
+    // Bind the descriptor heap giving access to the top-level acceleration structure, 
+	// as well as the raytracing output
+	// 最上位のアクセラレーション構造とレイトレーシング出力へのアクセスを提供する記述子ヒープをバインドします
     std::vector<ID3D12DescriptorHeap *> heaps = {m_srvUavHeap.Get()};
     m_commandList->SetDescriptorHeaps(static_cast<UINT>(heaps.size()),
                                       heaps.data());
@@ -361,19 +412,24 @@ void D3D12HelloTriangle::PopulateCommandList() {
     // On the last frame, the raytracing output was used as a copy source, to
     // copy its contents into the render target. Now we need to transition it to
     // a UAV so that the shaders can write in it.
+	// 最後のフレームで、レイトレーシング出力がコピー ソースとして使用され、そのコンテンツがレンダー ターゲットにコピーされました。
+	//次に、シェーダーが書き込むことができるように、UAV に移行する必要があります。
     CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(
         m_outputResource.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE,
         D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     m_commandList->ResourceBarrier(1, &transition);
 
     // Setup the raytracing task
+	// レイトレーシング タスクをセットアップします
     D3D12_DISPATCH_RAYS_DESC desc = {};
-    // The layout of the SBT is as follows: ray generation shader, miss
-    // shaders, hit groups. As described in the CreateShaderBindingTable method,
-    // all SBT entries of a given type have the same size to allow a fixed
-    // stride.
+    // The layout of the SBT is as follows: ray generation shader, 
+    // miss shaders, hit groups. As described in the CreateShaderBindingTable method,
+    // all SBT entries of a given type have the same size to allow a fixed stride.
+    // SBT のレイアウトは次のとおりです: 
+	//レイ生成シェーダー、ミスシェーダー、ヒット グループ。 CreateShaderBindingTable メソッドで説明されているように、特定のタイプのすべての SBT エントリは、固定ストライドを可能にするために同じサイズになります。
 
     // The ray generation shaders are always at the beginning of the SBT.
+	// レイ生成シェーダーは常に SBT の先頭にあります。
     uint32_t rayGenerationSectionSizeInBytes =
         m_sbtHelper.GetRayGenSectionSize();
     desc.RayGenerationShaderRecord.StartAddress =
@@ -381,19 +437,23 @@ void D3D12HelloTriangle::PopulateCommandList() {
     desc.RayGenerationShaderRecord.SizeInBytes =
         rayGenerationSectionSizeInBytes;
 
-    // The miss shaders are in the second SBT section, right after the ray
-    // generation shader. We have one miss shader for the camera rays and one
-    // for the shadow rays, so this section has a size of 2*m_sbtEntrySize. We
-    // also indicate the stride between the two miss shaders, which is the size
-    // of a SBT entry
+    // The miss shaders are in the second SBT section, right after the raygeneration shader. 
+	//We have one miss shader for the camera rays and onefor the shadow rays, 
+	//so this section has a size of 2*m_sbtEntrySize. 
+    //We also indicate the stride between the two miss shaders, which is the sizeof a SBT entry
+    // ミスシェーダーは、レイ生成シェーダーの直後の 2 番目の SBT セクションにあります。
+	//カメラレイに1つのミスシェーダーがあり、シャドウレイに1つあるため、このセクションのサイズは 2*m_sbtEntrySize です。
+	//また、SBT エントリのサイズである 2 つのミス シェーダー間のストライドも示します。
     uint32_t missSectionSizeInBytes = m_sbtHelper.GetMissSectionSize();
     desc.MissShaderTable.StartAddress =
         m_sbtStorage->GetGPUVirtualAddress() + rayGenerationSectionSizeInBytes;
     desc.MissShaderTable.SizeInBytes = missSectionSizeInBytes;
     desc.MissShaderTable.StrideInBytes = m_sbtHelper.GetMissEntrySize();
 
-    // The hit groups section start after the miss shaders. In this sample we
-    // have one 1 hit group for the triangle
+    // The hit groups section start after the miss shaders. 
+    // In this sample we have one 1 hit group for the triangle
+	// ヒット グループ セクションは、ミス シェーダーの後に始まります。
+	//このサンプルでは、​​三角形に 1 つのヒット グループがあります。
     uint32_t hitGroupsSectionSize = m_sbtHelper.GetHitGroupSectionSize();
     desc.HitGroupTable.StartAddress = m_sbtStorage->GetGPUVirtualAddress() +
                                       rayGenerationSectionSizeInBytes +
@@ -402,20 +462,24 @@ void D3D12HelloTriangle::PopulateCommandList() {
     desc.HitGroupTable.StrideInBytes = m_sbtHelper.GetHitGroupEntrySize();
 
     // Dimensions of the image to render, identical to a kernel launch dimension
+	// レンダリングする画像の寸法、カーネル起動寸法と同じ
     desc.Width = GetWidth();
     desc.Height = GetHeight();
     desc.Depth = 1;
 
     // Bind the raytracing pipeline
+	// レイトレーシング パイプラインをバインドする
     m_commandList->SetPipelineState1(m_rtStateObject.Get());
     // Dispatch the rays and write to the raytracing output
+	// レイをディスパッチし、レイトレーシング出力に書き込みます
     m_commandList->DispatchRays(&desc);
 
-    // The raytracing output needs to be copied to the actual render target used
-    // for display. For this, we need to transition the raytracing output from a
-    // UAV to a copy source, and the render target buffer to a copy destination.
-    // We can then do the actual copy, before transitioning the render target
-    // buffer into a render target, that will be then used to display the image
+    // The raytracing output needs to be copied to the actual render target usedfor display. 
+    // For this, we need to transition the raytracing output from aUAV to a copy source, and the render target buffer to a copy destination.
+    // We can then do the actual copy, before transitioning the render target buffer into a render target, that will be then used to display the image
+    //レイトレーシング出力は、表示に使用される実際のレンダーターゲットにコピーする必要があります。
+	//このためには、レイトレーシング出力を UAV からコピー ソースに移行し、レンダー ターゲット バッファーをコピー先に移行する必要があります。
+	//次に、レンダー ターゲット バッファーをレンダー ターゲットに移行する前に、実際のコピーを実行できます。これは、イメージの表示に使用されます。
     transition = CD3DX12_RESOURCE_BARRIER::Transition(
         m_outputResource.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
         D3D12_RESOURCE_STATE_COPY_SOURCE);
@@ -435,6 +499,7 @@ void D3D12HelloTriangle::PopulateCommandList() {
   }
 
   // Indicate that the back buffer will now be used to present.
+  // バック バッファーが表示に使用されることを示します。
   m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
                                         m_renderTargets[m_frameIndex].Get(),
                                         D3D12_RESOURCE_STATE_RENDER_TARGET,
@@ -445,16 +510,20 @@ void D3D12HelloTriangle::PopulateCommandList() {
 
 void D3D12HelloTriangle::WaitForPreviousFrame() {
   // WAITING FOR THE FRAME TO COMPLETE BEFORE CONTINUING IS NOT BEST PRACTICE.
-  // This is code implemented as such for simplicity. The
-  // D3D12HelloFrameBuffering sample illustrates how to use fences for efficient
+  // This is code implemented as such for simplicity. 
+  // The D3D12HelloFrameBuffering sample illustrates how to use fences for efficient
   // resource usage and to maximize GPU utilization.
+  // 続行する前にフレームが完了するのを待つことは最善の方法ではありません。これは、簡単にするために実装されたコードです。
+  // D3D12HelloFrameBuffering サンプルは、フェンスを使用してリソースを効率的に使用し、GPU の使用率を最大化する方法を示しています。
 
   // Signal and increment the fence value.
+  // フェンスの値を通知してインクリメントします。
   const UINT64 fence = m_fenceValue;
   ThrowIfFailed(m_commandQueue->Signal(m_fence.Get(), fence));
   m_fenceValue++;
 
   // Wait until the previous frame is finished.
+  // 前のフレームが終了するまで待ちます。
   if (m_fence->GetCompletedValue() < fence) {
     ThrowIfFailed(m_fence->SetEventOnCompletion(fence, m_fenceEvent));
     WaitForSingleObject(m_fenceEvent, INFINITE);
@@ -476,6 +545,7 @@ void D3D12HelloTriangle::CheckRaytracingSupport() {
 //
 void D3D12HelloTriangle::OnKeyUp(UINT8 key) {
   // Alternate between rasterization and raytracing using the spacebar
+  // スペースバーを使用してラスタライズとレイトレーシングを交互に行う
   if (key == VK_SPACE) {
     m_raster = !m_raster;
   }

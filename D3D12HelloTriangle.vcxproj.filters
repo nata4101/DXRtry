@@ -13,6 +13,9 @@
     <Filter Include="Assets\Shaders">
       <UniqueIdentifier>{8b0cb0c9-e0d8-4107-91c8-11654fac88e7}</UniqueIdentifier>
     </Filter>
+    <Filter Include="DXRhelper">
+      <UniqueIdentifier>{15cab220-8522-4486-9a75-bfee65c01690}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -33,12 +36,30 @@
     <ClInclude Include="Win32Application.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="DXRHelper.h" />
-    <ClInclude Include="nv_helpers_dx12\BottomLevelASGenerator.h" />
-    <ClInclude Include="nv_helpers_dx12\RaytracingPipelineGenerator.h" />
-    <ClInclude Include="nv_helpers_dx12\RootSignatureGenerator.h" />
-    <ClInclude Include="nv_helpers_dx12\ShaderBindingTableGenerator.h" />
-    <ClInclude Include="nv_helpers_dx12\TopLevelASGenerator.h" />
+    <ClInclude Include="DXRHelper.h">
+      <Filter>DXRhelper</Filter>
+    </ClInclude>
+    <ClInclude Include="nv_helpers_dx12\RootSignatureGenerator.h">
+      <Filter>DXRhelper</Filter>
+    </ClInclude>
+    <ClInclude Include="nv_helpers_dx12\RaytracingPipelineGenerator.h">
+      <Filter>DXRhelper</Filter>
+    </ClInclude>
+    <ClInclude Include="nv_helpers_dx12\ShaderBindingTableGenerator.h">
+      <Filter>DXRhelper</Filter>
+    </ClInclude>
+    <ClInclude Include="nv_helpers_dx12\TopLevelASGenerator.h">
+      <Filter>DXRhelper</Filter>
+    </ClInclude>
+    <ClInclude Include="nv_helpers_dx12\BottomLevelASGenerator.h">
+      <Filter>DXRhelper</Filter>
+    </ClInclude>
+    <ClInclude Include="main.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Manager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -56,11 +77,22 @@
     <ClCompile Include="Win32Application.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="nv_helpers_dx12\BottomLevelASGenerator.cpp" />
-    <ClCompile Include="nv_helpers_dx12\RaytracingPipelineGenerator.cpp" />
-    <ClCompile Include="nv_helpers_dx12\RootSignatureGenerator.cpp" />
-    <ClCompile Include="nv_helpers_dx12\ShaderBindingTableGenerator.cpp" />
-    <ClCompile Include="nv_helpers_dx12\TopLevelASGenerator.cpp" />
+    <ClCompile Include="nv_helpers_dx12\BottomLevelASGenerator.cpp">
+      <Filter>DXRhelper</Filter>
+    </ClCompile>
+    <ClCompile Include="nv_helpers_dx12\RaytracingPipelineGenerator.cpp">
+      <Filter>DXRhelper</Filter>
+    </ClCompile>
+    <ClCompile Include="nv_helpers_dx12\TopLevelASGenerator.cpp">
+      <Filter>DXRhelper</Filter>
+    </ClCompile>
+    <ClCompile Include="nv_helpers_dx12\ShaderBindingTableGenerator.cpp">
+      <Filter>DXRhelper</Filter>
+    </ClCompile>
+    <ClCompile Include="nv_helpers_dx12\RootSignatureGenerator.cpp">
+      <Filter>DXRhelper</Filter>
+    </ClCompile>
+    <ClCompile Include="Manager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="shaders.hlsl">
