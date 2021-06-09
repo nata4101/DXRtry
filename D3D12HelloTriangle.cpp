@@ -557,31 +557,41 @@ void D3D12HelloTriangle::OnKeyUp(UINT8 key) {
 // buffers in GPU memory along with their vertex count. The build is then done
 // in 3 steps: gathering the geometry, computing the sizes of the required
 // buffers, and building the actual AS
-//
+//GPU メモリ内の頂点バッファーのリストとその頂点数に基づいて、最下位レベルのアクセラレーション構造を作成します。
+//これでビルドは完了です
+//3 つのステップ: ジオメトリの収集、必要なバッファーのサイズの計算、実際の AS の構築
+
 D3D12HelloTriangle::AccelerationStructureBuffers
 D3D12HelloTriangle::CreateBottomLevelAS(
     std::vector<std::pair<ComPtr<ID3D12Resource>, uint32_t>> vVertexBuffers) {
   nv_helpers_dx12::BottomLevelASGenerator bottomLevelAS;
 
   // Adding all vertex buffers and not transforming their position.
+  // すべての頂点バッファーを追加し、それらの位置を変換しません。
   for (const auto &buffer : vVertexBuffers) {
     bottomLevelAS.AddVertexBuffer(buffer.first.Get(), 0, buffer.second,
                                   sizeof(Vertex), 0, 0);
   }
 
   // The AS build requires some scratch space to store temporary information.
+  // AS ビルドには、一時的な情報を保存するためのスクラッチ スペースが必要です。
   // The amount of scratch memory is dependent on the scene complexity.
+  // スクラッチ メモリの量は、シーンの複雑さに依存します。
   UINT64 scratchSizeInBytes = 0;
-  // The final AS also needs to be stored in addition to the existing vertex
-  // buffers. It size is also dependent on the scene complexity.
+  // The final AS also needs to be stored in addition to the existing vertex buffers. 
+  // 既存の頂点バッファーに加えて、最終的な AS も保存する必要があります。
+  // It size is also dependent on the scene complexity.
+  // サイズもシーンの複雑さに依存します。
   UINT64 resultSizeInBytes = 0;
 
   bottomLevelAS.ComputeASBufferSizes(m_device.Get(), false, &scratchSizeInBytes,
                                      &resultSizeInBytes);
 
-  // Once the sizes are obtained, the application is responsible for allocating
-  // the necessary buffers. Since the entire generation will be done on the GPU,
+  // Once the sizes are obtained, the application is responsible for allocatingthe necessary buffers. 
+  // サイズが取得されると、アプリケーションは必要なバッファを割り当てる責任があります
+  // Since the entire generation will be done on the GPU,
   // we can directly allocate those on the default heap
+  // 生成全体が GPU で行われるため、デフォルトのヒープに直接割り当てることができます
   AccelerationStructureBuffers buffers;
   buffers.pScratch = nv_helpers_dx12::CreateBuffer(
       m_device.Get(), scratchSizeInBytes,
@@ -593,9 +603,10 @@ D3D12HelloTriangle::CreateBottomLevelAS(
       D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE,
       nv_helpers_dx12::kDefaultHeapProps);
 
-  // Build the acceleration structure. Note that this call integrates a barrier
-  // on the generated AS, so that it can be used to compute a top-level AS right
-  // after this method.
+  // Build the acceleration structure. Note that this call integrates a barrier on the generated AS,
+  // so that it can be used to compute a top-level AS right after this method.
+  // 加速構造を構築します。この呼び出しは、生成された AS にバリアを統合することに注意してください。
+  // このメソッドの直後にトップレベル AS を計算するために使用できるようにします。
   bottomLevelAS.Generate(m_commandList.Get(), buffers.pScratch.Get(),
                          buffers.pResult.Get(), false, nullptr);
 
@@ -605,14 +616,16 @@ D3D12HelloTriangle::CreateBottomLevelAS(
 //-----------------------------------------------------------------------------
 // Create the main acceleration structure that holds all instances of the scene.
 // Similarly to the bottom-level AS generation, it is done in 3 steps: gathering
-// the instances, computing the memory requirements for the AS, and building the
-// AS itself
-//
+// the instances, computing the memory requirements for the AS, and building the AS itself
+// シーンのすべてのインスタンスを保持するメインの加速構造を作成します。
+// 最下位レベルの AS 生成と同様に、インスタンスの収集、AS のメモリ要件の計算、AS 自体の構築という 3 つのステップで実行されます。
 void D3D12HelloTriangle::CreateTopLevelAS(
     const std::vector<std::pair<ComPtr<ID3D12Resource>, DirectX::XMMATRIX>>
         &instances // pair of bottom level AS and matrix of the instance
+				   // インスタンスの最下位 AS と行列のペア
 ) {
   // Gather all the instances into the builder helper
+  // すべてのインスタンスをビルダー ヘルパーに集める
   for (size_t i = 0; i < instances.size(); i++) {
     m_topLevelASGenerator.AddInstance(instances[i].first.Get(),
                                       instances[i].second, static_cast<UINT>(i),
@@ -625,13 +638,19 @@ void D3D12HelloTriangle::CreateTopLevelAS(
   // memory. This call outputs the memory requirements for each (scratch,
   // results, instance descriptors) so that the application can allocate the
   // corresponding memory
+
+  // 最下位の AS に関して言えば、AS の構築には、実際の AS に加えて一時データを保存するためのスクラッチ スペースが必要です。
+  // トップレベル AS の場合、インスタンス記述子も GPU メモリに保存する必要があります。
+  // この呼び出しは、アプリケーションが対応するメモリを割り当てることができるように、それぞれのメモリ要件 (スクラッチ、結果、インスタンス記述子) を出力します。
   UINT64 scratchSize, resultSize, instanceDescsSize;
 
   m_topLevelASGenerator.ComputeASBufferSizes(m_device.Get(), true, &scratchSize,
                                              &resultSize, &instanceDescsSize);
 
-  // Create the scratch and result buffers. Since the build is all done on GPU,
-  // those can be allocated on the default heap
+  // Create the scratch and result buffers. 
+  // スクラッチと結果のバッファを作成します。
+  // Since the build is all done on GPU,those can be allocated on the default heap
+  // ビルドはすべて GPU で行われるため、デフォルトのヒープに割り当てることができます
   m_topLevelASBuffers.pScratch = nv_helpers_dx12::CreateBuffer(
       m_device.Get(), scratchSize, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS,
       D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
@@ -644,14 +663,17 @@ void D3D12HelloTriangle::CreateTopLevelAS(
   // The buffer describing the instances: ID, shader binding information,
   // matrices ... Those will be copied into the buffer by the helper through
   // mapping, so the buffer has to be allocated on the upload heap.
+  //インスタンスを記述するバッファー: ID、シェーダー バインディング情報、行列 ... 
+  //これらは、マッピングを通じてヘルパーによってバッファーにコピーされるため、バッファーはアップロード ヒープに割り当てる必要があります。
   m_topLevelASBuffers.pInstanceDesc = nv_helpers_dx12::CreateBuffer(
       m_device.Get(), instanceDescsSize, D3D12_RESOURCE_FLAG_NONE,
       D3D12_RESOURCE_STATE_GENERIC_READ, nv_helpers_dx12::kUploadHeapProps);
 
   // After all the buffers are allocated, or if only an update is required, we
   // can build the acceleration structure. Note that in the case of the update
-  // we also pass the existing AS as the 'previous' AS, so that it can be
-  // refitted in place.
+  // we also pass the existing AS as the 'previous' AS, so that it can be refitted in place.
+  //すべてのバッファが割り当てられた後、または更新のみが必要な場合は、加速構造を構築できます。
+  //更新の場合、既存の AS を「以前の」AS として渡すことで、所定の位置に再装着できることに注意してください。
   m_topLevelASGenerator.Generate(m_commandList.Get(),
                                  m_topLevelASBuffers.pScratch.Get(),
                                  m_topLevelASBuffers.pResult.Get(),
@@ -662,17 +684,20 @@ void D3D12HelloTriangle::CreateTopLevelAS(
 //
 // Combine the BLAS and TLAS builds to construct the entire acceleration
 // structure required to raytrace the scene
-//
+// BLAS ビルドと TLAS ビルドを組み合わせて、シーンのレイトレースに必要な加速構造全体を構築します
 void D3D12HelloTriangle::CreateAccelerationStructures() {
   // Build the bottom AS from the Triangle vertex buffer
+  // Triangle 頂点バッファーから下の AS を構築します
   AccelerationStructureBuffers bottomLevelBuffers =
       CreateBottomLevelAS({{m_vertexBuffer.Get(), 3}});
 
   // Just one instance for now
+  // 現時点では 1 つのインスタンスのみ
   m_instances = {{bottomLevelBuffers.pResult, XMMatrixIdentity()}};
   CreateTopLevelAS(m_instances);
 
   // Flush the command list and wait for it to finish
+  // コマンドリストをフラッシュし、完了するのを待ちます
   m_commandList->Close();
   ID3D12CommandList *ppCommandLists[] = {m_commandList.Get()};
   m_commandQueue->ExecuteCommandLists(1, ppCommandLists);
@@ -682,38 +707,39 @@ void D3D12HelloTriangle::CreateAccelerationStructures() {
   m_fence->SetEventOnCompletion(m_fenceValue, m_fenceEvent);
   WaitForSingleObject(m_fenceEvent, INFINITE);
 
-  // Once the command list is finished executing, reset it to be reused for
-  // rendering
+  // Once the command list is finished executing, reset it to be reused for rendering
+  // コマンド リストの実行が終了したら、レンダリングに再利用するためにリセットします
   ThrowIfFailed(
       m_commandList->Reset(m_commandAllocator.Get(), m_pipelineState.Get()));
 
-  // Store the AS buffers. The rest of the buffers will be released once we exit
-  // the function
+  // Store the AS buffers. The rest of the buffers will be released once we exit the function
+  // AS バッファを保存します。関数を終了すると、残りのバッファは解放されます。
   m_bottomLevelAS = bottomLevelBuffers.pResult;
 }
 
 //-----------------------------------------------------------------------------
 // The ray generation shader needs to access 2 resources: the raytracing output
 // and the top-level acceleration structure
-//
+// レイ生成シェーダーは2つのリソースにアクセスする必要があります: レイトレーシング出力とトップレベルのアクセラレーション構造
+
 
 ComPtr<ID3D12RootSignature> D3D12HelloTriangle::CreateRayGenSignature() {
   nv_helpers_dx12::RootSignatureGenerator rsc;
   rsc.AddHeapRangesParameter(
-      {{0 /*u0*/, 1 /*1 descriptor */, 0 /*use the implicit register space 0*/,
-        D3D12_DESCRIPTOR_RANGE_TYPE_UAV /* UAV representing the output buffer*/,
-        0 /*heap slot where the UAV is defined*/},
+      {{0 /*u0*/, 1 /*1 descriptor(記述子) */, 0 /*use the implicit register space(暗黙のレジスタ空間を使用する) 0*/,
+        D3D12_DESCRIPTOR_RANGE_TYPE_UAV /* UAV representing the output buffer(出力バッファを表す UAV)*/,
+        0 /*heap slot where the UAV is defined(UAV が定義されているヒープ スロット)*/},
        {0 /*t0*/, 1, 0,
-        D3D12_DESCRIPTOR_RANGE_TYPE_SRV /*Top-level acceleration structure*/,
-        1}});
+        D3D12_DESCRIPTOR_RANGE_TYPE_SRV /*Top-level acceleration structure(トップレベルの加速構造)*/,
+        1}
+	  });
 
   return rsc.Generate(m_device.Get(), true);
 }
 
 //-----------------------------------------------------------------------------
-// The hit shader communicates only through the ray payload, and therefore does
-// not require any resources
-//
+// The hit shader communicates only through the ray payload, and therefore does not require any resources
+// ヒットシェーダーはレイペイロードのみを介して通信するため,リソースは必要ありません
 ComPtr<ID3D12RootSignature> D3D12HelloTriangle::CreateHitSignature() {
   nv_helpers_dx12::RootSignatureGenerator rsc;
   rsc.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_SRV);
@@ -721,9 +747,8 @@ ComPtr<ID3D12RootSignature> D3D12HelloTriangle::CreateHitSignature() {
 }
 
 //-----------------------------------------------------------------------------
-// The miss shader communicates only through the ray payload, and therefore
-// does not require any resources
-//
+// The miss shader communicates only through the ray payload, and therefore does not require any resources
+// missシェーダーはレイペイロードのみを介して通信するため、リソースは必要ありません
 ComPtr<ID3D12RootSignature> D3D12HelloTriangle::CreateMissSignature() {
   nv_helpers_dx12::RootSignatureGenerator rsc;
   return rsc.Generate(m_device.Get(), true);
@@ -734,6 +759,8 @@ ComPtr<ID3D12RootSignature> D3D12HelloTriangle::CreateMissSignature() {
 // The raytracing pipeline binds the shader code, root signatures and pipeline
 // characteristics in a single structure used by DXR to invoke the shaders and
 // manage temporary memory during raytracing
+// レイトレーシング パイプラインは、シェーダーコード、ルート署名、およびパイプライン特性を DXR が使用する単一の構造にバインドし、
+// レイトレーシング中にシェーダーを呼び出し、一時メモリを管理します。
 //
 //
 void D3D12HelloTriangle::CreateRaytracingPipeline() {
@@ -742,44 +769,58 @@ void D3D12HelloTriangle::CreateRaytracingPipeline() {
   // The pipeline contains the DXIL code of all the shaders potentially executed
   // during the raytracing process. This section compiles the HLSL code into a
   // set of DXIL libraries. We chose to separate the code in several libraries
-  // by semantic (ray generation, hit, miss) for clarity. Any code layout can be
-  // used.
+  // by semantic (ray generation, hit, miss) for clarity. Any code layout can be used.
+  // パイプラインには、レイトレーシングプロセス中に実行される可能性のあるすべてのシェーダーの DXIL コードが含まれています。
+  // このセクションでは、HLSL コードを DXIL ライブラリのセットにコンパイルします。
+  // 明確にするために、いくつかのライブラリのコードをセマンティック (レイ生成、ヒット、ミス) ごとに分けることにしました。
+  // 任意のコード レイアウトを使用できます。
   m_rayGenLibrary = nv_helpers_dx12::CompileShaderLibrary(L"RayGen.hlsl");
   m_missLibrary = nv_helpers_dx12::CompileShaderLibrary(L"Miss.hlsl");
   m_hitLibrary = nv_helpers_dx12::CompileShaderLibrary(L"Hit.hlsl");
 
-  // In a way similar to DLLs, each library is associated with a number of
-  // exported symbols. This
-  // has to be done explicitly in the lines below. Note that a single library
-  // can contain an arbitrary number of symbols, whose semantic is given in HLSL
-  // using the [shader("xxx")] syntax
+  // In a way similar to DLLs, each library is associated with a number of exported symbols. 
+  // DLL と同様に、各ライブラリは、エクスポートされた多数のシンボルに関連付けられています。
+  // This has to be done explicitly in the lines below. 
+  // これは、以下の行で明示的に行う必要があります。
+  // Note that a single library can contain an arbitrary number of symbols, 
+  // whose semantic is given in HLSL using the [shader("xxx")] syntax
+  // 単一のライブラリには任意の数のシンボルを含めることができ、
+  // そのセマンティクスは [shader("xxx")] 構文を使用して HLSL で指定されることに注意してください。
   pipeline.AddLibrary(m_rayGenLibrary.Get(), {L"RayGen"});
   pipeline.AddLibrary(m_missLibrary.Get(), {L"Miss"});
   pipeline.AddLibrary(m_hitLibrary.Get(), {L"ClosestHit"});
 
-  // To be used, each DX12 shader needs a root signature defining which
-  // parameters and buffers will be accessed.
+  // To be used, each DX12 shader needs a root signature defining which parameters and buffers will be accessed.
+  // 使用するには,各DX12 シェーダーに、アクセスするパラメーターとバッファーを定義するルート署名が必要です
   m_rayGenSignature = CreateRayGenSignature();
   m_missSignature = CreateMissSignature();
   m_hitSignature = CreateHitSignature();
 
-  // 3 different shaders can be invoked to obtain an intersection: an
-  // intersection shader is called
+  // 3 different shaders can be invoked to obtain an intersection:
+  // an intersection shader is called
   // when hitting the bounding box of non-triangular geometry. This is beyond
   // the scope of this tutorial. An any-hit shader is called on potential
   // intersections. This shader can, for example, perform alpha-testing and
   // discard some intersections. Finally, the closest-hit program is invoked on
   // the intersection point closest to the ray origin. Those 3 shaders are bound
   // together into a hit group.
+  // 3つの異なるシェーダーを呼び出して交差を取得できます。
+  // 交差シェーダーは、非三角形ジオメトリの境界ボックスにぶつかったときに呼び出されます。
+  // これは、このチュートリアルの範囲を超えています。エニーヒット シェーダーは、潜在的な交差点で呼び出されます。
+  // このシェーダーは、たとえば、アルファテストを実行して、一部の交差を破棄できます。
+  // 最後に、レイの原点に最も近い交差点で、最も近いヒットプログラムが呼び出されます。
+  // これらの 3つのシェーダーは、1つのヒット グループにまとめられます。
 
-  // Note that for triangular geometry the intersection shader is built-in. An
-  // empty any-hit shader is also defined by default, so in our simple case each
+  // Note that for triangular geometry the intersection shader is built-in. 
+  // An empty any-hit shader is also defined by default, so in our simple case each
   // hit group contains only the closest hit shader. Note that since the
-  // exported symbols are defined above the shaders can be simply referred to by
-  // name.
+  // exported symbols are defined above the shaders can be simply referred to by name.
+  // 三角形のジオメトリの場合、交差シェーダーが組み込まれていることに注意してください。
+  // 空のエニーヒット シェーダーもデフォルトで定義されているため、単純なケースでは、各ヒット グループには最も近いヒットシェーダーのみが含まれます。
+  //エクスポートされたシンボルは上記で定義されているため、シェーダーは単に名前で参照できることに注意してください。
 
-  // Hit group for the triangles, with a shader simply interpolating vertex
-  // colors
+  // Hit group for the triangles, with a shader simply interpolating vertex colors
+  // 頂点の色を単純に補間するシェーダーを使用して、三角形のグループをヒット
   pipeline.AddHitGroup(L"HitGroup", L"ClosestHit");
 
   // The following section associates the root signature to each shader. Note
@@ -787,51 +828,64 @@ void D3D12HelloTriangle::CreateRaytracingPipeline() {
   // (eg. Miss and ShadowMiss). Note that the hit shaders are now only referred
   // to as hit groups, meaning that the underlying intersection, any-hit and
   // closest-hit shaders share the same root signature.
+  // 次のセクションでは、ルート署名を各シェーダーに関連付けます。
+  // 一部のシェーダーが同じルート署名 (たとえば、Miss と ShadowMiss) を共有していることを明示的に示すことができることに注意してください。
+  // ヒット シェーダーは現在、ヒット グループとのみ呼ばれていることに注意してください。
+  // つまり、基になる交差、任意のヒット、および最も近いヒットのシェーダーが同じルート シグネチャを共有することを意味します。
   pipeline.AddRootSignatureAssociation(m_rayGenSignature.Get(), {L"RayGen"});
   pipeline.AddRootSignatureAssociation(m_missSignature.Get(), {L"Miss"});
   pipeline.AddRootSignatureAssociation(m_hitSignature.Get(), {L"HitGroup"});
 
-  // The payload size defines the maximum size of the data carried by the rays,
-  // ie. the the data
-  // exchanged between shaders, such as the HitInfo structure in the HLSL code.
+  // The payload size defines the maximum size of the data carried by the rays, ie.
+  // the the data exchanged between shaders, such as the HitInfo structure in the HLSL code.
   // It is important to keep this value as low as possible as a too high value
   // would result in unnecessary memory consumption and cache trashing.
+  // ペイロード サイズは、光線によって運ばれるデータの最大サイズを定義します。 
+  // HLSL コードの HitInfo 構造など、シェーダー間で交換されるデータ。この値をできるだけ低く保つことが重要です。
+  //値が高すぎると、不要なメモリ消費とキャッシュの廃棄が発生するためです。
   pipeline.SetMaxPayloadSize(4 * sizeof(float)); // RGB + distance
 
-  // Upon hitting a surface, DXR can provide several attributes to the hit. In
-  // our sample we just use the barycentric coordinates defined by the weights
+  // Upon hitting a surface, DXR can provide several attributes to the hit. 
+  // In our sample we just use the barycentric coordinates defined by the weights
   // u,v of the last two vertices of the triangle. The actual barycentrics can
   // be obtained using float3 barycentrics = float3(1.f-u-v, u, v);
-  pipeline.SetMaxAttributeSize(2 * sizeof(float)); // barycentric coordinates
+  // 表面にヒットすると、DXR はヒットにいくつかの属性を提供できます。
+  // このサンプルでは、​​三角形の最後の 2 つの頂点の重み u、v によって定義された重心座標を使用するだけです。
+  // 実際の重心座標は、float3 barycentrics = float3(1.f-u-v, u, v); を使用して取得できます。
+  pipeline.SetMaxAttributeSize(2 * sizeof(float)); // barycentric coordinates(重心座標)
 
-  // The raytracing process can shoot rays from existing hit points, resulting
-  // in nested TraceRay calls. Our sample code traces only primary rays, which
-  // then requires a trace depth of 1. Note that this recursion depth should be
-  // kept to a minimum for best performance. Path tracing algorithms can be
-  // easily flattened into a simple loop in the ray generation.
+  // The raytracing process can shoot rays from existing hit points, resulting in nested TraceRay calls.
+  // レイトレーシングプロセスは、既存のヒットポイントからレイを発射でき、ネストされた TraceRay 呼び出しが発生します。
+  // Our sample code traces only primary rays, which then requires a trace depth of 1.
+  // サンプルコードはプライマリレイのみをトレースするため、トレース深度1が必要です。
+  // Note that this recursion depth should bekept to a minimum for best performance.
+  // 最高のパフォーマンスを得るには、この再帰の深さを最小限に抑える必要があることに注意してください。
+  // Path tracing algorithms can be easily flattened into a simple loop in the ray generation.
+  // パストレースアルゴリズムは、レイ生成の単純なループに簡単にフラット化できます。
   pipeline.SetMaxRecursionDepth(1);
 
   // Compile the pipeline for execution on the GPU
+  // GPU で実行するためにパイプラインをコンパイルします
   m_rtStateObject = pipeline.Generate();
 
-  // Cast the state object into a properties object, allowing to later access
-  // the shader pointers by name
+  // Cast the state object into a properties object, allowing to later access the shader pointers by name
+  // 状態オブジェクトをプロパティ オブジェクトにキャストし、後で名前でシェーダー ポインターにアクセスできるようにします
   ThrowIfFailed(
       m_rtStateObject->QueryInterface(IID_PPV_ARGS(&m_rtStateObjectProps)));
 }
 
 //-----------------------------------------------------------------------------
 //
-// Allocate the buffer holding the raytracing output, with the same size as the
-// output image
-//
+// Allocate the buffer holding the raytracing output, with the same size as the output image
+// 出力画像と同じサイズのレイトレーシング出力を保持するバッファを割り当てます
 void D3D12HelloTriangle::CreateRaytracingOutputBuffer() {
   D3D12_RESOURCE_DESC resDesc = {};
   resDesc.DepthOrArraySize = 1;
   resDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-  // The backbuffer is actually DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, but sRGB
-  // formats cannot be used with UAVs. For accuracy we should convert to sRGB
-  // ourselves in the shader
+  // The backbuffer is actually DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, but sRGB formats cannot be used with UAVs. 
+  // バックバッファは実際にはDXGI_FORMAT_R8G8B8A8_UNORM_SRGB ですが、sRGBフォーマットはUAVでは使用できません。
+  // For accuracy we should convert to sRGB ourselves in the shader
+  // 正確にするために、シェーダーで自分自身で sRGB に変換する必要があります
   resDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 
   resDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
@@ -848,29 +902,31 @@ void D3D12HelloTriangle::CreateRaytracingOutputBuffer() {
 
 //-----------------------------------------------------------------------------
 //
-// Create the main heap used by the shaders, which will give access to the
-// raytracing output and the top-level acceleration structure
-//
+// Create the main heap used by the shaders,
+// which will give access to the raytracing output and the top-level acceleration structure
+// シェーダーが使用するメイン ヒープを作成します。これにより、レイトレーシング出力とトップレベルのアクセラレーション構造にアクセスできます。
 void D3D12HelloTriangle::CreateShaderResourceHeap() {
-  // Create a SRV/UAV/CBV descriptor heap. We need 2 entries - 1 UAV for the
-  // raytracing output and 1 SRV for the TLAS
+  // Create a SRV/UAV/CBV descriptor heap. We need 2 entries - 1 UAV for the raytracing output and 1 SRV for the TLAS
+  // SRV/UAV/CBV 記述子ヒープを作成します。2つのエントリが必要です - レイトレーシング出力用に1つのUAVとTLAS用に1つのSRV
   m_srvUavHeap = nv_helpers_dx12::CreateDescriptorHeap(
       m_device.Get(), 2, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, true);
 
-  // Get a handle to the heap memory on the CPU side, to be able to write the
-  // descriptors directly
+  // Get a handle to the heap memory on the CPU side, to be able to write the descriptors directly
+  // CPU 側のヒープ メモリへのハンドルを取得して、記述子を直接書き込めるようにします
   D3D12_CPU_DESCRIPTOR_HANDLE srvHandle =
       m_srvUavHeap->GetCPUDescriptorHandleForHeapStart();
 
-  // Create the UAV. Based on the root signature we created it is the first
-  // entry. The Create*View methods write the view information directly into
-  // srvHandle
+  // Create the UAV. Based on the root signature we created it is the first entry.
+  // UAV を作成します。作成したルート署名に基づくと、これは最初のエントリです。
+  // The Create*View methods write the view information directly into srvHandle
+  // Create*View メソッドは、ビュー情報を srvHandle に直接書き込みます
   D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
   uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
   m_device->CreateUnorderedAccessView(m_outputResource.Get(), nullptr, &uavDesc,
                                       srvHandle);
 
   // Add the Top Level AS SRV right after the raytracing output buffer
+  // レイトレーシング出力バッファの直後にトップ レベル AS SRV を追加します
   srvHandle.ptr += m_device->GetDescriptorHandleIncrementSize(
       D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
@@ -881,6 +937,7 @@ void D3D12HelloTriangle::CreateShaderResourceHeap() {
   srvDesc.RaytracingAccelerationStructure.Location =
       m_topLevelASBuffers.pResult->GetGPUVirtualAddress();
   // Write the acceleration structure view in the heap
+  // ヒープに加速構造ビューを書き込む
   m_device->CreateShaderResourceView(nullptr, &srvDesc, srvHandle);
 }
 
@@ -892,41 +949,54 @@ void D3D12HelloTriangle::CreateShaderResourceHeap() {
 // contains a series of shader IDs with their resource pointers. The SBT
 // contains the ray generation shader, the miss shaders, then the hit groups.
 // Using the helper class, those can be specified in arbitrary order.
-//
+// シェーダー バインディング テーブル (SBT) は、レイトレーシング セットアップの基礎です。
+// これは、シェーダー リソースが GPU のレイトレーシングによって解釈できる方法でシェーダーにバインドされる場所です。
+// レイアウトに関しては、SBT には一連のシェーダー ID とそのリソース ポインターが含まれています。
+// SBT には、レイ生成シェーダー、ミス シェーダー、ヒット グループが含まれます。ヘルパー クラスを使用して、任意の順序で指定できます。
 void D3D12HelloTriangle::CreateShaderBindingTable() {
-  // The SBT helper class collects calls to Add*Program.  If called several
-  // times, the helper must be emptied before re-adding shaders.
+  // The SBT helper class collects calls to Add*Program. 
+  // SBT ヘルパー クラスは、Add*Program への呼び出しを収集します。
+  // If called several times, the helper must be emptied before re-adding shaders.
+  // 数回呼び出された場合、シェーダーを再追加する前にヘルパーを空にする必要があります。
   m_sbtHelper.Reset();
 
-  // The pointer to the beginning of the heap is the only parameter required by
-  // shaders without root parameters
+  // The pointer to the beginning of the heap is the only parameter required by shaders without root parameters
+  // ヒープの先頭へのポインターは、ルート パラメーターのないシェーダーに必要な唯一のパラメーターです。
   D3D12_GPU_DESCRIPTOR_HANDLE srvUavHeapHandle =
       m_srvUavHeap->GetGPUDescriptorHandleForHeapStart();
 
   // The helper treats both root parameter pointers and heap pointers as void*,
-  // while DX12 uses the
-  // D3D12_GPU_DESCRIPTOR_HANDLE to define heap pointers. The pointer in this
-  // struct is a UINT64, which then has to be reinterpreted as a pointer.
+  // while DX12 uses the D3D12_GPU_DESCRIPTOR_HANDLE to define heap pointers.
+  // ヘルパーはルート パラメーター ポインターとヒープ ポインターの両方を void* として扱いますが、
+  // DX12 は D3D12_GPU_DESCRIPTOR_HANDLE を使用してヒープ ポインターを定義します。
+  // The pointer in this struct is a UINT64, which then has to be reinterpreted as a pointer.
+  // この構造体のポインタは UINT64 であり、ポインタとして再解釈する必要があります。
+
   auto heapPointer = reinterpret_cast<UINT64 *>(srvUavHeapHandle.ptr);
 
   // The ray generation only uses heap data
+  // レイ生成はヒープ データのみを使用します
   m_sbtHelper.AddRayGenerationProgram(L"RayGen", {heapPointer});
 
   // The miss and hit shaders do not access any external resources: instead they
   // communicate their results through the ray payload
+  // ミス シェーダーとヒット シェーダーは外部リソースにアクセスしません。代わりに、レイ ペイロードを介して結果を通信します。
   m_sbtHelper.AddMissProgram(L"Miss", {});
 
   // Adding the triangle hit shader
+  // トライアングルヒットシェーダーの追加
   m_sbtHelper.AddHitGroup(L"HitGroup",
                           {(void *)(m_vertexBuffer->GetGPUVirtualAddress())});
 
-  // Compute the size of the SBT given the number of shaders and their
-  // parameters
+  // Compute the size of the SBT given the number of shaders and their parameters
+  // シェーダーとそのパラメーターの数を考慮して SBT のサイズを計算します
+
   uint32_t sbtSize = m_sbtHelper.ComputeSBTSize();
 
-  // Create the SBT on the upload heap. This is required as the helper will use
-  // mapping to write the SBT contents. After the SBT compilation it could be
-  // copied to the default heap for performance.
+  // Create the SBT on the upload heap. This is required as the helper will use mapping to write the SBT contents.
+  // アップロード ヒープに SBT を作成します。ヘルパーはマッピングを使用して SBT コンテンツを書き込むため、これは必須です。
+  // After the SBT compilation it could be copied to the default heap for performance.
+  // SBT のコンパイル後、パフォーマンスのためにデフォルトのヒープにコピーできます。
   m_sbtStorage = nv_helpers_dx12::CreateBuffer(
       m_device.Get(), sbtSize, D3D12_RESOURCE_FLAG_NONE,
       D3D12_RESOURCE_STATE_GENERIC_READ, nv_helpers_dx12::kUploadHeapProps);
@@ -934,5 +1004,6 @@ void D3D12HelloTriangle::CreateShaderBindingTable() {
     throw std::logic_error("Could not allocate the shader binding table");
   }
   // Compile the SBT from the shader and parameters info
+  // シェーダーとパラメーター情報から SBT をコンパイルします
   m_sbtHelper.Generate(m_sbtStorage.Get(), m_rtStateObjectProps.Get());
 }
