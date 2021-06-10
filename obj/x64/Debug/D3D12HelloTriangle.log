@@ -1,6 +1,4 @@
 ﻿  Manager.cpp
-  D3D12HelloTriangle.cpp
-  コードを生成中...
   D3D12HelloTriangle.vcxproj -> C:\Users\riki1\source\repos\DXRtry\bin\x64\Debug\D3D12HelloTriangle.exe
   Copy dxcompiler.dll and dxil.dll to target folder
   
@@ -8,7 +6,7 @@
      ROBOCOPY     ::     Windows の堅牢性の高いファイル コピー                              
   -------------------------------------------------------------------------------
   
-    開始: 2021年6月3日 13:56:18
+    開始: 2021年6月10日 10:05:25
      コピー元 : C:\Program Files (x86)\Windows Kits\10\bin\10.0.18362.0\x64\
        コピー先 : C:\Users\riki1\source\repos\DXRtry\bin\x64\Debug\
   
@@ -28,5 +26,5 @@
        ファイル:         2         0         2         0         0         0
         バイト:   12.98 m         0   12.98 m         0         0         0
          時刻:   0:00:00   0:00:00                       0:00:00   0:00:00
-     終了: 2021年6月3日 13:56:18
+     終了: 2021年6月10日 10:05:25
   
